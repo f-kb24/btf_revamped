@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  database:
+    image: postgres:14.4
+    container_name: btf_database
+    restart: always
+    volumes:
+      - ./db_data:/var/lib/postgresql/db_data
+    environment:
+      - PGPORT=${PG_PORT}
+    env_file:
+      - ./env/database.env
+    ports:
+      - ${PG_PORT}:${PG_PORT}
+
+  pic_backend:
+    container_name: btf_app
+    build:
+      context: ./backend
+      target: dev
+    restart: always
+    environment:
+      - PORT=${PORT}
+      - REDIS_URL=${REDIS_URL}
+      - PG_URL=${PG_URL}
+    env_file:
+      - ./env/backend.env
+    volumes:
+      - ./backend:/src
+    ports:
+      - ${PORT}:${PORT}
+
+  redis:
+    image: redis:7
+    build: ./redis
+    volumes:
+      - ./redis/redis_data:/data
+
+  task_queue:
+    build: ./task_queue
+    restart: always
+    volumes:
+      - ./task_queue:/src
+    env_file:
+      - ./env/taskqueue.env
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - DATABASE_URL=${PG_URL}
